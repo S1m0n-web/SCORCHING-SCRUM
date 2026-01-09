@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SCORCHING SCRUM - World Cup Edition</title>
+<style>
+body { margin: 0; overflow: hidden; font-family: 'Arial Black', sans-serif; background-color: #000; touch-action: none; }
+
+/* --- ACCOUNT SYSTEM STYLES --- */
+#auth-screen {
+    position: absolute; width: 100%; height: 100%; 
+    background: #05101a; display: flex; align-items: center; justify-content: center; z-index: 3000;
+}
+.auth-card {
+    background: rgba(0, 0, 0, 0.9); border: 4px solid #fbbf24; border-radius: 20px; 
+    padding: 30px; text-align: center; color: white; width: 300px;
+}
+.auth-input {
+    width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; font-family: sans-serif;
+}
+
+/* --- MENU STYLES --- */
+#main-menu {
+    position: absolute; width: 100%; height: 100%; 
+    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1000');
+    background-size: cover; background-position: center;
+    display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
+}
+.menu-card {
+    background: rgba(0, 0, 0, 0.9); border: 4px solid #fbbf24; border-radius: 20px; 
+    padding: 30px; text-align: center; color: white; width: 350px; box-shadow: 0 0 50px rgba(0,0,0,1);
+    max-height: 90vh; overflow-y: auto;
+}
+.menu-btn {
+    width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 10px; 
+    font-size: 18px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;
+    font-family: 'Arial Black', sans-serif;
+}
+.btn-play { background: #fbbf24; color: black; }
+.btn-wc { background: #0ea5e9; color: white; border: 2px solid white; }
+.btn-ctrl { background: #444; color: white; }
+.menu-btn:hover { transform: scale(1.05); filter: brightness(1.2); }
+
+#controls-overlay, #wc-select, #wc-bracket { display: none; }
+.control-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 14px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+.key-label { color: #fbbf24; }
+
+/* --- NATION GRID --- */
+.nation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+.nation-opt { background: #222; padding: 10px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; font-size: 14px; }
+.nation-opt:hover { border-color: #0ea5e9; background: #333; }
+
+/* --- EXISTING UI --- */
+#ui { position: absolute; top: 15px; left: 15px; color: white; text-shadow: 2px 2px 2px black; pointer-events: none; z-index: 100; width: 95%; display: none; justify-content: space-between; }
+.score-board { font-size: 20px; font-weight: bold; color: #fbbf24; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; pointer-events: auto; }
+#timer-box { font-size: 24px; color: white; background: rgba(0,0,0,0.7); padding: 10px; border: 2px solid #fbbf24; border-radius: 5px; min-width: 80px; text-align: center; }
+#meter-container { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); width: 200px; height: 15px; border: 2px solid white; display: none; background: rgba(0,0,0,0.5); }
+#meter-fill { height: 100%; width: 0%; background: #00ff00; }
+
+#shop-menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 4px solid #fbbf24; padding: 20px; color: white; display: none; z-index: 500; text-align: center; border-radius: 20px; width: 300px; max-height: 80vh; overflow-y: auto; pointer-events: auto; }
+.shop-item { background: #222; margin: 10px 0; padding: 12px; border-radius: 10px; cursor: pointer; border: 1px solid #444; transition: 0.2s; }
+.shop-item:hover { background: #444; border-color: #fbbf24; }
+.shop-close { background: #ff4444; color: white; padding: 10px 20px; cursor: pointer; border-radius: 5px; margin-top: 15px; }
+#btn-shop-ui { background: #ffd700; color: black; padding: 5px 10px; border-radius: 5px; font-size: 14px; cursor: pointer; margin-top: 5px; display: inline-block; }
+
+#joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%; display: none; }
+#joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: white; border-radius: 50%; opacity: 0.5; }
+#action-buttons { position: absolute; bottom: 30px; right: 20px; display: none; gap: 10px; flex-direction: column; align-items: flex-end; }
+.btn { width: 75px; height: 75px; background: rgba(255,255,255,0.2); border: 2px solid white; border-radius: 50%; color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; user-select: none; font-size: 12px; pointer-events: auto; }
+.btn:active { background: rgba(255,255,255,0.5); }
+#btn-try { background: rgba(0,255,0,0.3); border-color: #00ff00; }
+#btn-shop { background: rgba(255, 215, 0, 0.3); border-color: #ffd700; }
+
+@media (pointer: coarse) { #joystick-zone, #action-buttons { display: flex; } }
+</style>
+</head>
+<body onclick="handleGlobalInput()" ontouchstart="handleGlobalInput()">
+
+<div id="auth-screen">
+    <div class="auth-card">
+        <h2 style="color:#fbbf24;">SCORCHING SCRUM</h2>
+        <input type="text" id="username" class="auth-input" placeholder="Username">
+        <input type="password" id="password" class="auth-input" placeholder="Password">
+        <button class="menu-btn btn-play" onclick="handleAuth()">Enter Stadium</button>
+        <p style="font-size:10px; opacity:0.7;">Progress will be saved to your local device.</p>
+    </div>
+</div>
+
+<div id="main-menu">
+    <div class="menu-card" id="menu-home">
+        <h1 style="color:#fbbf24; margin:0 0 20px 0;">SCORCHING<br>SCRUM</h1>
+        <p id="welcome-msg" style="font-size: 12px; color: #aaa; margin-bottom: 20px;"></p>
+        <button class="menu-btn btn-play" onclick="startSinglePlayer()">Singleplayer</button>
+        <button class="menu-btn btn-wc" onclick="openWCSelect()">World Cup Mode</button>
+        <button class="menu-btn btn-ctrl" onclick="toggleControls(true)">Controls</button>
+    </div>
+
+    <div class="menu-card" id="wc-select">
+        <h2 style="color:#0ea5e9;">SELECT NATION</h2>
+        <div class="nation-grid" id="nation-list"></div>
+        <button class="menu-btn btn-ctrl" onclick="backToHome()">Back</button>
+    </div>
+
+    <div class="menu-card" id="wc-bracket">
+        <h2 id="wc-stage-title" style="color:#fbbf24;">QUARTER-FINAL</h2>
+        <p id="wc-matchup" style="font-size: 18px; margin: 20px 0;"></p>
+        <button class="menu-btn btn-play" onclick="launchWCGame()">Kick Off</button>
+    </div>
+
+    <div class="menu-card" id="controls-overlay">
+        <h2 style="color:#fbbf24;">CONTROLS</h2>
+        <div style="text-align: left; margin-bottom: 20px;">
+            <div class="control-row"><span class="key-label">Move</span> <span>WASD / Stick</span></div>
+            <div class="control-row"><span class="key-label">Punt Kick</span> <span>Space / A-Btn</span></div>
+            <div class="control-row"><span class="key-label">Grubber Kick</span> <span>Q / X-Btn</span></div>
+            <div class="control-row"><span class="key-label">Score Try</span> <span>E / B-Btn</span></div>
+        </div>
+        <button class="menu-btn btn-ctrl" onclick="toggleControls(false)">Back</button>
+    </div>
+</div>
+
+<div id="ui">
+    <div class="score-board">
+        <span id="pNameDisp">PLAYER</span>: <span id="pScoreVal">0</span><br>
+        <span id="aiNameDisp">AI</span>: <span id="aiScoreVal">0</span><br>
+        <span style="color:#ffd700">COINS: <span id="coinVal">0</span></span><br>
+        <div id="btn-shop-ui" onclick="toggleShop()">OPEN SHOP</div>
+    </div>
+    <div id="timer-box">0:00</div>
+    <div id="status" style="color: #00ff00; font-weight: bold; font-size: 18px;">Match Start!</div>
+</div>
+
+<div id="shop-menu">
+    <h1 style="color:#ffd700; margin-top:0;">RUGBY SHOP</h1>
+    <div class="shop-item" id="champ-reward" style="display:none; border: 2px solid gold; background: #332b00;"><b>🏆 WORLD CHAMP JERSEY</b><br>Unlocked!</div>
+    <div class="shop-item" id="shield-reward" style="display:none; border: 2px solid #0ea5e9; background: #001a33;"><b>🛡️ CHAMPION SHIELD</b><br>Unlocked!</div>
+    <div class="shop-item" onclick="buyItem('scrumcap', 45)"><b>SCRUM CAP</b><br>45 Coins</div>
+    <div class="shop-item" onclick="buyItem('speedboots', 85)"><b>⚡ SPEED BOOTS</b><br>85 Coins</div>
+    <div class="shop-item" onclick="buyItem('crown', 50)"><b>GOLDEN CROWN</b><br>50 Coins</div>
+    <div class="shop-item" onclick="buyItem('tophat', 60)"><b>🎩 TOP HAT</b><br>60 Coins</div>
+    <div class="shop-item" onclick="buyItem('horns', 75)"><b>😈 VIKING HORNS</b><br>75 Coins</div>
+    <div class="shop-item" onclick="buyItem('halo', 100)"><b>😇 ANGEL HALO</b><br>100 Coins</div>
+    <div class="shop-item" onclick="buyItem('hardhat', 40)"><b>👷 HARD HAT</b><br>40 Coins</div>
+    <div class="shop-item" onclick="buyItem('cape', 120)"><b>HERO CAPE</b><br>120 Coins</div>
+    <div class="shop-item" onclick="buyItem('redTrail', 150)"><b>🔴 RED TRAIL</b><br>150 Coins</div>
+    <div class="shop-item" onclick="buyItem('goldTrail', 200)"><b>✨ GOLD TRAIL</b><br>200 Coins</div>
+    <div class="shop-close" onclick="toggleShop()">CLOSE</div>
+</div>
+
+<div id="meter-container"><div id="meter-fill"></div></div>
+<div id="joystick-zone"><div id="joystick-stick"></div></div>
+<div id="action-buttons">
+    <div class="btn" id="btn-shop" onclick="toggleShop()">SHOP</div>
+    <div class="btn" id="btn-try">TRY / E</div>
+    <div class="btn" id="btn-punt">PUNT / Space</div>
+    <div class="btn" id="btn-grub">GRUB / Q</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+
+<script>
+// --- ACCOUNT & PERSISTENCE (PERSISTS BETWEEN MODES) ---
+let currentUser = null;
+let coins = 0;
+let inventory = { scrumcap: false, speedboots: false, crown: false, cape: false, tophat: false, horns: false, halo: false, hardhat: false, redTrail: false, goldTrail: false, shield: false };
+
+function handleAuth() {
+    const user = document.getElementById('username').value.trim();
+    const pass = document.getElementById('password').value.trim();
+    if (user.length < 3 || pass.length < 3) { alert("Min 3 characters!"); return; }
+
+    const savedData = localStorage.getItem(`rugby_user_${user}`);
+    if (savedData) {
+        const data = JSON.parse(savedData);
+        if (data.pass !== pass) { alert("Wrong password!"); return; }
+        loadProfile(data);
+    } else {
+        const newData = { pass, coins: 0, inventory: { ...inventory } };
+        localStorage.setItem(`rugby_user_${user}`, JSON.stringify(newData));
+        loadProfile(newData);
+    }
+    currentUser = user;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('main-menu').style.display = 'flex';
+    document.getElementById('welcome-msg').innerText = `Stadium Pass: ${user}`;
+    updateCoinUI();
+}
+
+function loadProfile(data) {
+    coins = data.coins;
+    inventory = data.inventory;
+    Object.keys(inventory).forEach(item => {
+        if (inventory[item]) applyAccessory(item);
+    });
+    if (inventory.shield) document.getElementById('shield-reward').style.display = 'block';
+}
+
+function saveProfile() {
+    if (!currentUser) return;
+    const data = JSON.parse(localStorage.getItem(`rugby_user_${currentUser}`));
+    data.coins = coins;
+    data.inventory = inventory;
+    localStorage.setItem(`rugby_user_${currentUser}`, JSON.stringify(data));
+}
+
+// --- WORLD CUP DATA ---
+const nations = [
+    { name: "New Zealand", color: 0x111111 }, { name: "South Africa", color: 0x004d2c },
+    { name: "France", color: 0x002395 }, { name: "Ireland", color: 0x009a44 },
+    { name: "England", color: 0xffffff }, { name: "Australia", color: 0xffcd00 },
+    { name: "Fiji", color: 0x68cfe3 }, { name: "Japan", color: 0xff0000 }
+];
+
+let isWC = false, wcStage = 0, myNation = null, opponents = [];
+const stages = ["QUARTER-FINAL", "SEMI-FINAL", "WORLD CUP FINAL"];
+
+function openWCSelect() {
+    document.getElementById('menu-home').style.display = 'none';
+    document.getElementById('wc-select').style.display = 'block';
+    const list = document.getElementById('nation-list');
+    list.innerHTML = '';
+    nations.forEach((n, i) => {
+        const d = document.createElement('div');
+        d.className = 'nation-opt';
+        d.innerText = n.name;
+        d.onclick = () => {
+            myNation = n;
+            isWC = true;
+            wcStage = 0;
+            opponents = nations.filter(x => x.name !== n.name).sort(() => 0.5 - Math.random()).slice(0, 3);
+            showBracket();
+        };
+        list.appendChild(d);
+    });
+}
+
+function showBracket() {
+    document.getElementById('wc-select').style.display = 'none';
+    document.getElementById('wc-bracket').style.display = 'block';
+    document.getElementById('wc-stage-title').innerText = stages[wcStage];
+    document.getElementById('wc-matchup').innerText = `${myNation.name} vs ${opponents[wcStage].name}`;
+}
+
+function launchWCGame() {
+    document.getElementById('main-menu').style.display = 'none';
+    document.getElementById('ui').style.display = 'flex';
+    document.getElementById('pNameDisp').innerText = myNation.name.toUpperCase();
+    document.getElementById('aiNameDisp').innerText = opponents[wcStage].name.toUpperCase();
+    player.mesh.children[0].material.color.setHex(myNation.color);
+    ai.mesh.children[0].material.color.setHex(opponents[wcStage].color);
+    
+    aiSpeed = 10 + (wcStage * 1.5);
+    currentTime = 0;
+    pScore = 0;
+    aiScore = 0;
+    isHalftime = false;
+    isFulltime = false;
+    matchPaused = false;
+    isGameStarted = true;
+    
+    resetMatch("KICK OFF!");
+    initCrowd();
+    playSound('whistle');
+}
+
+function backToHome() {
+    document.getElementById('wc-select').style.display = 'none';
+    document.getElementById('menu-home').style.display = 'block';
+}
+
+let isGameStarted = false;
+let aiSpeed = 10;
+
+function startSinglePlayer() {
+    isWC = false;
+    document.getElementById('main-menu').style.display = 'none';
+    document.getElementById('ui').style.display = 'flex';
+    document.getElementById('pNameDisp').innerText = "PLAYER";
+    document.getElementById('aiNameDisp').innerText = "AI";
+    isGameStarted = true;
+    initCrowd();
+    playSound('whistle');
+    camera.position.set(0, 15, 25);
+}
+
+function toggleControls(show) {
+    document.getElementById('menu-home').style.display = show ? 'none' : 'block';
+    document.getElementById('controls-overlay').style.display = show ? 'block' : 'none';
+}
+
+// --- AUDIO SYSTEM ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'kick') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'whistle') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'tackle') {
+        const noise = audioCtx.createBufferSource();
+        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for(let i=0; i<data.length; i++) data[i] = Math.random() * 2 - 1;
+        noise.buffer = buffer;
+        const lowpass = audioCtx.createBiquadFilter();
+        lowpass.type = 'lowpass'; lowpass.frequency.value = 400;
+        noise.connect(lowpass); lowpass.connect(gain);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        noise.start(); playSound('gasp');
+    } else if (type === 'coin') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    } else if (type === 'crowd_cheer') {
+        const cheerOsc = audioCtx.createOscillator(); cheerOsc.type = 'sawtooth';
+        cheerOsc.frequency.setValueAtTime(120, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.5);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 2);
+        cheerOsc.connect(gain); cheerOsc.start(); cheerOsc.stop(audioCtx.currentTime + 2);
+    } else if (type === 'thud') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(60, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'gasp') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+    }
+}
+
+let crowdGain;
+function initCrowd() {
+    if (crowdGain) return;
+    const bufferSize = 2 * audioCtx.sampleRate,
+    noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate),
+    output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+    const whiteNoise = audioCtx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer; whiteNoise.loop = true;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 300;
+    crowdGain = audioCtx.createGain(); crowdGain.gain.value = 0.05;
+    whiteNoise.connect(filter); filter.connect(crowdGain);
+    crowdGain.connect(audioCtx.destination);
+    whiteNoise.start();
+}
+
+// --- CORE SETUP ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05101a); 
+scene.fog = new THREE.Fog(0x05101a, 20, 150); 
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const world = new CANNON.World();
+world.gravity.set(0, -18, 0);
+
+const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+mainLight.position.set(20, 60, 20);
+mainLight.castShadow = true;
+scene.add(mainLight);
+
+const ambient = new THREE.AmbientLight(0x4040ff, 0.3); 
+scene.add(ambient);
+
+function createFloodlight(x, z) {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 30), new THREE.MeshPhongMaterial({color: 0x555555}));
+    pole.position.set(x, 15, z);
+    const lightHead = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 2), new THREE.MeshBasicMaterial({color: 0xffffaa}));
+    lightHead.position.set(x, 30, z);
+    lightHead.lookAt(0, 0, 0);
+    scene.add(pole, lightHead);
+    const spot = new THREE.SpotLight(0xffffcc, 1.5, 100, 0.5);
+    spot.position.set(x, 30, z);
+    spot.target.position.set(0, 0, 0);
+    scene.add(spot);
+}
+createFloodlight(40, 60); createFloodlight(-40, 60); createFloodlight(40, -60); createFloodlight(-40, -60);
+
+// --- ECONOMY STATE ---
+let isShopOpen = false;
+let activeTrail = null;
+let moveSpeedMultiplier = 1;
+
+function toggleShop() {
+    isShopOpen = !isShopOpen;
+    matchPaused = isShopOpen;
+    document.getElementById('shop-menu').style.display = isShopOpen ? 'block' : 'none';
+    playSound('coin');
+    saveProfile();
+}
+
+function buyItem(item, price) {
+    if (inventory[item]) { alert("Already owned!"); return; }
+    if (coins >= price) {
+        coins -= price;
+        inventory[item] = true;
+        updateCoinUI();
+        applyAccessory(item);
+        saveProfile();
+        playSound('coin');
+    } else { alert("Not enough coins!"); }
+}
+
+function updateCoinUI() { document.getElementById('coinVal').innerText = coins; }
+
+function applyAccessory(item) {
+    const mat = (color) => new THREE.MeshPhongMaterial({ color });
+    if (item === 'scrumcap') {
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.6, 1.1), mat(0x222222));
+        cap.position.y = 0.8; player.mesh.add(cap);
+    }
+    if (item === 'speedboots') {
+        moveSpeedMultiplier = 1.4;
+        const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.6), mat(0x00ff00));
+        b1.position.set(0.3, -0.9, 0.1);
+        const b2 = b1.clone(); b2.position.x = -0.3;
+        player.mesh.add(b1, b2);
+    }
+    if (item === 'crown') {
+        const g = new THREE.TorusGeometry(0.4, 0.1, 8, 20);
+        const m = new THREE.Mesh(g, mat(0xffd700));
+        m.rotation.x = Math.PI/2; m.position.y = 1.2;
+        player.mesh.add(m);
+    }
+    if (item === 'tophat') {
+        const group = new THREE.Group();
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1), mat(0x111111));
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.8), mat(0x111111));
+        top.position.y = 0.4; group.add(base, top);
+        group.position.y = 1.1; player.mesh.add(group);
+    }
+    if (item === 'horns') {
+        const h1 = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.6), mat(0xeeeeee));
+        const h2 = h1.clone();
+        h1.position.set(0.4, 1.2, 0); h1.rotation.z = -0.4;
+        h2.position.set(-0.4, 1.2, 0); h2.rotation.z = 0.4;
+        player.mesh.add(h1, h2);
+    }
+    if (item === 'halo') {
+        const g = new THREE.TorusGeometry(0.4, 0.05, 8, 20);
+        const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffff00 }));
+        m.rotation.x = Math.PI/2; m.position.y = 1.6;
+        player.mesh.add(m);
+    }
+    if (item === 'hardhat') {
+        const g = new THREE.SphereGeometry(0.55, 16, 16, 0, Math.PI*2, 0, Math.PI/2);
+        const m = new THREE.Mesh(g, mat(0xffaa00));
+        m.position.y = 0.8; player.mesh.add(m);
+    }
+    if (item === 'cape') {
+        const g = new THREE.PlaneGeometry(1, 2);
+        const m = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ color: 0xaa0000, side: THREE.DoubleSide }));
+        m.position.set(0, 0, -0.55); m.rotation.x = 0.1;
+        player.mesh.add(m);
+    }
+    if (item === 'shield') {
+        const g = new THREE.BoxGeometry(1.2, 1.2, 0.2);
+        const m = new THREE.Mesh(g, mat(0xffcd00));
+        m.position.set(0, 0, -0.6);
+        player.mesh.add(m);
+    }
+    if (item === 'redTrail') activeTrail = 0xff0000;
+    if (item === 'goldTrail') activeTrail = 0xffd700;
+}
+
+const fieldWidth = 70;
+const fieldHeight = 110;
+const grassMat = new THREE.MeshPhongMaterial({ color: 0x1a5e3a }); 
+const grassMesh = new THREE.Mesh(new THREE.PlaneGeometry(fieldWidth, fieldHeight), grassMat);
+grassMesh.rotation.x = -Math.PI / 2;
+grassMesh.receiveShadow = true;
+scene.add(grassMesh);
+
+function createBoundary(w, h, d, x, y, z) {
+    const wallGeo = new THREE.BoxGeometry(w, h, d);
+    const wallMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
+    const wallMesh = new THREE.Mesh(wallGeo, wallMat);
+    wallMesh.position.set(x, y, z);
+    scene.add(wallMesh);
+    const wallBody = new CANNON.Body({ mass: 0 });
+    wallBody.addShape(new CANNON.Box(new CANNON.Vec3(w/2, h/2, d/2)));
+    wallBody.position.set(x, y, z);
+    world.addBody(wallBody);
+}
+createBoundary(fieldWidth, 6, 2, 0, 3, 55); 
+createBoundary(fieldWidth, 6, 2, 0, 3, -55);
+createBoundary(2, 6, fieldHeight, 35, 3, 0);
+createBoundary(2, 6, fieldHeight, -35, 3, 0);
+
+function createStand(x, rotationY) {
+    const standGroup = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.BoxGeometry(40, 15, 110), new THREE.MeshPhongMaterial({ color: 0x111111 }));
+    standGroup.add(base);
+    for(let i=0; i<300; i++) {
+        const fan = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.5), new THREE.MeshBasicMaterial({ color: Math.random() * 0xaaaaaa }));
+        fan.position.set((Math.random()-0.5)*30, 8, (Math.random()-0.5)*100);
+        standGroup.add(fan);
+    }
+    standGroup.position.set(x, 5, 0);
+    standGroup.rotation.y = rotationY;
+    scene.add(standGroup);
+}
+createStand(55, 0); createStand(-55, Math.PI);
+
+function createLine(z, width = 60, thickness = 0.5) {
+    const lineMesh = new THREE.Mesh(new THREE.PlaneGeometry(width, thickness), new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.8 }));
+    lineMesh.rotation.x = -Math.PI / 2;
+    lineMesh.position.set(0, 0.05, z);
+    scene.add(lineMesh);
+}
+createLine(-35, 60, 0.8); createLine(35, 60, 0.8); createLine(0, 60, 0.4); 
+
+const groundBody = new CANNON.Body({ mass: 0 });
+groundBody.addShape(new CANNON.Plane());
+groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+world.addBody(groundBody);
+
+const postMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
+function makePosts(z) {
+    const postGroup = new THREE.Group();
+    const lp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 16), postMat); lp.position.set(-5, 8, z);
+    const rp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 16), postMat); rp.position.set(5, 8, z);
+    const cb = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 10), postMat); cb.rotation.z = Math.PI/2; cb.position.set(0, 5, z);
+    postGroup.add(lp, rp, cb);
+    scene.add(postGroup);
+}
+makePosts(-45); makePosts(45);
+
+function createActor(color, z) {
+    const group = new THREE.Group();
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshPhongMaterial({ color }));
+    mesh.castShadow = true;
+    group.add(mesh);
+    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.2), new THREE.MeshPhongMaterial({ color: 0x000000 }));
+    nose.position.set(0, 0.5, 0.5); 
+    group.add(nose);
+    scene.add(group);
+    const body = new CANNON.Body({ mass: 8, shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)) });
+    body.position.set(0, 2, z);
+    body.fixedRotation = true;
+    body.linearDamping = 0.5;
+    world.addBody(body);
+    return { mesh: group, body };
+}
+const player = createActor(0x0000ff, 15);
+const ai = createActor(0xff3300, -15);
+const ball = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), new THREE.MeshPhongMaterial({ color: 0xdddddd }));
+ball.scale.set(1, 1.3, 1);
+ball.castShadow = true;
+scene.add(ball);
+const ballBody = new CANNON.Body({ mass: 1, shape: new CANNON.Sphere(0.5) });
+ballBody.position.set(0, 5, 0);
+ballBody.linearDamping = 0.6;
+world.addBody(ballBody);
+
+// --- STATE & MATCH CLOCK (AUTOMATIC HALFTIME) ---
+const keys = {};
+let joystick = { x: 0, y: 0, active: false };
+let possession = null;
+let pScore = 0, aiScore = 0;
+let kickPower = 0, isCharging = false, kickRequest = null;
+let turnoverTimer = 0, goalCheckActive = false;
+let currentTime = 0, isHalftime = false, isFulltime = false, matchPaused = false;
+
+function updateClock() {
+    if (matchPaused || !isGameStarted) return;
+    currentTime += 1/60;
+    let rugbyMinutes = Math.floor((currentTime / 120) * 80);
+
+    if (rugbyMinutes >= 40 && !isHalftime && currentTime < 61) {
+        rugbyMinutes = 40; isHalftime = true; matchPaused = true;
+        document.getElementById('status').innerText = "HALFTIME... Get Ready!";
+        playSound('whistle');
+        setTimeout(() => {
+            matchPaused = false;
+            document.getElementById('status').innerText = "SECOND HALF START!";
+            playSound('whistle');
+            if (crowdGain) crowdGain.gain.setTargetAtTime(0.08, audioCtx.currentTime, 0.5);
+        }, 3000); 
+    }
+
+    if (rugbyMinutes >= 80) {
+        rugbyMinutes = 80; isFulltime = true; matchPaused = true;
+        if (isWC) handleWCWinCheck();
+        else {
+            document.getElementById('status').innerText = "FULL TIME! Restarting...";
+            playSound('whistle');
+            setTimeout(hardReset, 4000);
+        }
+    }
+    document.getElementById('timer-box').innerText = `${rugbyMinutes}:00`;
+}
+
+function handleWCWinCheck() {
+    if (pScore > aiScore) {
+        wcStage++;
+        if (wcStage > 2) {
+            document.getElementById('status').innerText = "WORLD CHAMPIONS! (+250 Coins + SHIELD)";
+            document.getElementById('shield-reward').style.display = 'block';
+            coins += 250; inventory.shield = true; updateCoinUI(); saveProfile();
+            playSound('whistle'); playSound('crowd_cheer'); playSound('coin');
+            applyAccessory('shield');
+            setTimeout(() => { location.reload(); }, 6000);
+        } else {
+            document.getElementById('status').innerText = "VICTORY! ADVANCING...";
+            playSound('whistle');
+            setTimeout(() => {
+                isGameStarted = false;
+                document.getElementById('ui').style.display = 'none';
+                document.getElementById('main-menu').style.display = 'flex';
+                showBracket();
+            }, 3000);
+        }
+    } else {
+        document.getElementById('status').innerText = "ELIMINATED! Better luck next time.";
+        setTimeout(() => { location.reload(); }, 4000);
+    }
+}
+
+function hardReset() {
+    pScore = 0; aiScore = 0; currentTime = 0;
+    isHalftime = false; isFulltime = false; matchPaused = false;
+    resetMatch("KICK OFF!");
+}
+
+function handleGlobalInput() { if (!isGameStarted) return; initCrowd(); }
+
+function startCharging(type) {
+    if (matchPaused) return;
+    if (possession === 'player' && !isCharging) {
+        isCharging = true; kickRequest = type;
+        document.getElementById('meter-container').style.display = 'block';
+    }
+}
+
+function fireKick() {
+    if (!isCharging) return;
+    const p = kickPower / 100;
+    possession = null; turnoverTimer = 0.8;
+    const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(player.mesh.quaternion);
+    if (kickRequest === 'punt') {
+        ballBody.velocity.set(direction.x * (15 + 30 * p), 12 + (15 * p), direction.z * (15 + 30 * p));
+        goalCheckActive = true;
+    } else {
+        ballBody.velocity.set(direction.x * (20 + 35 * p), 2, direction.z * (20 + 35 * p));
+    }
+    playSound('kick');
+    isCharging = false; kickPower = 0; document.getElementById('meter-container').style.display = 'none';
+}
+
+function scoreTry() { 
+    if (matchPaused) return;
+    pScore += 5; coins += 10; updateCoinUI(); saveProfile();
+    playSound('whistle'); playSound('crowd_cheer'); playSound('coin');
+    resetMatch("TRY SCORED! (+10 Coins)"); 
+}
+
+function resetMatch(msg) {
+    document.getElementById('status').innerText = msg;
+    document.getElementById('pScoreVal').innerText = pScore;
+    document.getElementById('aiScoreVal').innerText = aiScore;
+    possession = null; isCharging = false; goalCheckActive = false;
+    player.body.position.set(0, 2, 15); ai.body.position.set(0, 2, -15);
+    ballBody.position.set(0, 5, 0); ballBody.velocity.set(0, 0, 0);
+    player.body.velocity.set(0,0,0); ai.body.velocity.set(0,0,0);
+}
+
+function spawnTrail() {
+    if (!activeTrail || matchPaused || !isGameStarted) return;
+    const g = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+    const m = new THREE.MeshBasicMaterial({ color: activeTrail, transparent: true, opacity: 0.6 });
+    const trail = new THREE.Mesh(g, m);
+    trail.position.copy(player.body.position);
+    scene.add(trail);
+    setTimeout(() => { scene.remove(trail); }, 500);
+}
+setInterval(spawnTrail, 100);
+
+// --- INPUT LISTENERS ---
+window.addEventListener('keydown', (e) => {
+    if(!isGameStarted) return;
+    handleGlobalInput(); keys[e.code] = true;
+    if (e.code === 'Space') startCharging('punt');
+    if (e.code === 'KeyQ') startCharging('grubber');
+    if (e.code === 'KeyE') { if (possession === 'player' && player.body.position.z < -35) scoreTry(); }
+});
+window.addEventListener('keyup', (e) => {
+    keys[e.code] = false;
+    if (isCharging && (e.code === 'Space' || e.code === 'KeyQ')) fireKick();
+});
+
+document.getElementById('btn-punt').ontouchstart = (e) => { e.preventDefault(); handleGlobalInput(); startCharging('punt'); };
+document.getElementById('btn-punt').ontouchend = (e) => { e.preventDefault(); fireKick(); };
+document.getElementById('btn-grub').ontouchstart = (e) => { e.preventDefault(); handleGlobalInput(); startCharging('grubber'); };
+document.getElementById('btn-grub').ontouchend = (e) => { e.preventDefault(); fireKick(); };
+document.getElementById('btn-try').ontouchstart = (e) => { e.preventDefault(); handleGlobalInput(); if(possession==='player' && player.body.position.z < -35) scoreTry(); };
+
+const jZone = document.getElementById('joystick-zone'), jStick = document.getElementById('joystick-stick');
+jZone.ontouchstart = (e) => { handleGlobalInput(); joystick.active = true; };
+jZone.ontouchmove = (e) => { 
+    if(!joystick.active) return; e.preventDefault();
+    const r = jZone.getBoundingClientRect(), t = e.touches[0];
+    const dx = t.clientX - (r.left + r.width/2), dy = t.clientY - (r.top + r.height/2);
+    const d = Math.min(Math.sqrt(dx*dx + dy*dy), 50), a = Math.atan2(dy, dx);
+    joystick.x = (Math.cos(a) * d) / 50; joystick.y = (Math.sin(a) * d) / 50;
+    jStick.style.transform = `translate(${Math.cos(a)*d}px, ${Math.sin(a)*d}px)`;
+};
+jZone.ontouchend = () => { joystick.active = false; joystick.x = 0; joystick.y = 0; jStick.style.transform = `translate(0,0)`; };
+
+// --- GAME LOOP ---
+function update() {
+    requestAnimationFrame(update);
+    updateClock();
+    if (!isGameStarted) { renderer.render(scene, camera); return; }
+
+    const gp = navigator.getGamepads()[0];
+    if (gp) {
+        if (Math.abs(gp.axes[0]) > 0.1 || Math.abs(gp.axes[1]) > 0.1) {
+            joystick.active = true; joystick.x = gp.axes[0]; joystick.y = gp.axes[1];
+        } else if (!('ontouchstart' in window)) joystick.active = false;
+        if (gp.buttons[0].pressed) { if(!isCharging) startCharging('punt'); } 
+        else if (isCharging && kickRequest === 'punt') fireKick();
+        if (gp.buttons[2].pressed) { if(!isCharging) startCharging('grubber'); }
+        else if (isCharging && kickRequest === 'grubber') fireKick();
+        if (gp.buttons[1].pressed && possession === 'player' && player.body.position.z < -35) scoreTry();
+    }
+
+    if (matchPaused) { renderer.render(scene, camera); return; }
+    
+    world.step(1/60);
+    if (turnoverTimer > 0) turnoverTimer -= 1/60;
+
+    let mx = 0, mz = 0;
+    if (keys['KeyW']) mz -= 1; if (keys['KeyS']) mz += 1;
+    if (keys['KeyA']) mx -= 1; if (keys['KeyD']) mx += 1;
+    if (joystick.active) { mx = joystick.x; mz = joystick.y; }
+
+    player.body.velocity.x = mx * 12 * moveSpeedMultiplier; player.body.velocity.z = mz * 12 * moveSpeedMultiplier;
+    if (Math.abs(mx) > 0.1 || Math.abs(mz) > 0.1) player.mesh.rotation.y = Math.atan2(mx, mz);
+
+    let aiTarget = (possession === 'ai') ? new CANNON.Vec3(0, 2, 45) : (possession === 'player' ? player.body.position : ballBody.position);
+    let adx = aiTarget.x - ai.body.position.x, adz = aiTarget.z - ai.body.position.z, d = Math.sqrt(adx*adx + adz*adz) || 1;
+    ai.body.velocity.x = (adx/d) * aiSpeed; ai.body.velocity.z = (adz/d) * aiSpeed;
+    ai.mesh.rotation.y = Math.atan2(ai.body.velocity.x, ai.body.velocity.z);
+
+    if (possession) {
+        const h = (possession === 'player') ? player : ai;
+        const fwd = new THREE.Vector3(0, 0, 1.2).applyQuaternion(h.mesh.quaternion);
+        ballBody.position.set(h.body.position.x + fwd.x, h.body.position.y + 0.3, h.body.position.z + fwd.z);
+        if (isCharging) {
+            kickPower = Math.min(kickPower + 2, 100);
+            document.getElementById('meter-fill').style.width = kickPower + '%';
+            ballBody.velocity.set(0, 0, 0);
+        } else ballBody.velocity.copy(h.body.velocity);
+    }
+
+    if (ballBody.position.y < 0.5 && Math.abs(ballBody.velocity.y) > 1) playSound('thud');
+    if (possession && player.body.position.distanceTo(ai.body.position) < 1.5) {
+        possession = null; turnoverTimer = 1.2;
+        ballBody.velocity.set((Math.random()-0.5)*15, 10, 5);
+        document.getElementById('status').innerText = "TACKLE!";
+        playSound('tackle');
+    }
+
+    if (!possession && turnoverTimer <= 0) {
+        if (player.body.position.distanceTo(ballBody.position) < 1.8) possession = 'player';
+        else if (ai.body.position.distanceTo(ballBody.position) < 1.8) possession = 'ai';
+    }
+
+    if (possession === 'ai' && ai.body.position.z > 35) { aiScore += 5; resetMatch("AI SCORED!"); playSound('whistle'); }
+    if (goalCheckActive && ballBody.position.z < -44 && ballBody.position.y > 5) { pScore += 3; resetMatch("DROP GOAL!"); playSound('whistle'); }
+
+    player.mesh.position.copy(player.body.position); ai.mesh.position.copy(ai.body.position);
+    ball.position.copy(ballBody.position); ball.quaternion.copy(ballBody.quaternion);
+    camera.position.set(player.mesh.position.x, player.mesh.position.y + 12, player.mesh.position.z + 18);
+    camera.lookAt(player.mesh.position.x, player.mesh.position.y, player.mesh.position.z - 5);
+    renderer.render(scene, camera);
+}
+update();
+</script>
+</body>
+</html>
